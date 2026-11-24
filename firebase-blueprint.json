@@ -1,0 +1,198 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Public-safe user profile summary",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "photoUrl": { "type": "string", "maxLength": 512 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "createdAt", "updatedAt"]
+    },
+    "UserPrivateSettings": {
+      "title": "UserPrivateSettings",
+      "description": "Private user PII and shopping preferences",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "format": "email", "maxLength": 256 },
+        "preferredCurrency": { "type": "string", "enum": ["INR", "USD", "EUR", "GBP"] },
+        "preferredLanguage": { "type": "string", "enum": ["en", "hi"] },
+        "country": { "type": "string", "maxLength": 64 },
+        "defaultBudget": { "type": "number" },
+        "priorityWeights": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "preferredCurrency", "preferredLanguage", "updatedAt"]
+    },
+    "SavedProduct": {
+      "title": "SavedProduct",
+      "description": "A product bookmarked by a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "productId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "brand": { "type": "string", "maxLength": 80 },
+        "category": { "type": "string", "maxLength": 80 },
+        "price": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 8 },
+        "buySmartScore": { "type": "number" },
+        "sourceUrl": { "type": "string", "maxLength": 512 },
+        "imageUrl": { "type": "string", "maxLength": 512 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "productId", "title", "price", "currency", "createdAt"]
+    },
+    "PriceAlert": {
+      "title": "PriceAlert",
+      "description": "User target price tracking alert",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "productId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "productTitle": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "currentPrice": { "type": "number" },
+        "targetPrice": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 8 },
+        "channel": { "type": "string", "enum": ["in_app", "email"] },
+        "status": { "type": "string", "enum": ["active", "triggered", "paused"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "productId", "productTitle", "currentPrice", "targetPrice", "currency", "channel", "status", "createdAt", "updatedAt"]
+    },
+    "ComparisonRecord": {
+      "title": "ComparisonRecord",
+      "description": "Saved multi-product comparison",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "productIds": { "type": "array" },
+        "priorities": { "type": "object" },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "productIds", "isPublic", "createdAt"]
+    },
+    "ShoppingList": {
+      "title": "ShoppingList",
+      "description": "AI-optimized multi-product shopping list",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "budget": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 8 },
+        "items": { "type": "array" },
+        "totalEstimatedCost": { "type": "number" },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "budget", "currency", "items", "totalEstimatedCost", "isPublic", "createdAt", "updatedAt"]
+    },
+    "SearchHistoryItem": {
+      "title": "SearchHistoryItem",
+      "description": "User search query history entry",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "query": { "type": "string", "minLength": 1, "maxLength": 400 },
+        "category": { "type": "string", "maxLength": 80 },
+        "budget": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 8 },
+        "resultCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "query", "createdAt"]
+    },
+    "ConversationRecord": {
+      "title": "ConversationRecord",
+      "description": "Personal AI shopping assistant conversation",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "messages": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "messages", "createdAt", "updatedAt"]
+    },
+    "NotificationItem": {
+      "title": "NotificationItem",
+      "description": "In-app notification for price alert or system update",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "body", "read", "createdAt"]
+    },
+    "ProductReport": {
+      "title": "ProductReport",
+      "description": "User-submitted product accuracy or feedback report",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "productId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "issueType": { "type": "string", "enum": ["wrong_price", "wrong_spec", "broken_link", "safety_concern", "other"] },
+        "details": { "type": "string", "minLength": 5, "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["open", "reviewed", "resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "productId", "issueType", "details", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Public-safe user profile documents"
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserPrivateSettings" },
+      "description": "Private user PII and preferences"
+    },
+    "/saved_products/{docId}": {
+      "schema": { "$ref": "#/entities/SavedProduct" },
+      "description": "Saved products per user"
+    },
+    "/price_alerts/{docId}": {
+      "schema": { "$ref": "#/entities/PriceAlert" },
+      "description": "Target price alerts per user"
+    },
+    "/comparisons/{docId}": {
+      "schema": { "$ref": "#/entities/ComparisonRecord" },
+      "description": "Saved comparisons"
+    },
+    "/shopping_lists/{docId}": {
+      "schema": { "$ref": "#/entities/ShoppingList" },
+      "description": "AI shopping cart optimizer lists"
+    },
+    "/search_history/{docId}": {
+      "schema": { "$ref": "#/entities/SearchHistoryItem" },
+      "description": "User search history"
+    },
+    "/conversations/{docId}": {
+      "schema": { "$ref": "#/entities/ConversationRecord" },
+      "description": "AI shopping assistant sessions"
+    },
+    "/notifications/{docId}": {
+      "schema": { "$ref": "#/entities/NotificationItem" },
+      "description": "In-app notifications"
+    },
+    "/product_reports/{docId}": {
+      "schema": { "$ref": "#/entities/ProductReport" },
+      "description": "Reported product errors and user feedback"
+    }
+  }
+}

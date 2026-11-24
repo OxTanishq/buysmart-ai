@@ -1,0 +1,6 @@
+{
+  "name": "BuySmart AI",
+  "description": "Search smarter. Compare better. Buy confidently. An AI-powered shopping intelligence, price tracking, and product comparison platform by Nexora Studios.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

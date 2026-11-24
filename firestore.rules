@@ -1,0 +1,322 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isVerified() && (
+        request.auth.token.email == 'rajuoptif@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'photoUrl', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 512))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivate(data) {
+      return data.keys().hasAll(['userId', 'preferredCurrency', 'preferredLanguage', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'email', 'preferredCurrency', 'preferredLanguage', 'country', 'defaultBudget', 'priorityWeights', 'updatedAt'])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && (!('email' in data) || (data.email is string && data.email.size() <= 256))
+        && data.preferredCurrency in ['INR', 'USD', 'EUR', 'GBP']
+        && data.preferredLanguage in ['en', 'hi']
+        && (!('country' in data) || (data.country is string && data.country.size() <= 64))
+        && (!('defaultBudget' in data) || (data.defaultBudget is number && data.defaultBudget >= 0))
+        && (!('priorityWeights' in data) || data.priorityWeights is map)
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSavedProduct(data) {
+      return data.keys().hasAll(['userId', 'productId', 'title', 'price', 'currency', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'productId', 'title', 'brand', 'category', 'price', 'currency', 'buySmartScore', 'sourceUrl', 'imageUrl', 'createdAt'])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && isValidId(data.productId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 240
+        && (!('brand' in data) || (data.brand is string && data.brand.size() <= 80))
+        && (!('category' in data) || (data.category is string && data.category.size() <= 80))
+        && data.price is number && data.price >= 0
+        && data.currency is string && data.currency.size() >= 1 && data.currency.size() <= 8
+        && (!('buySmartScore' in data) || (data.buySmartScore is number && data.buySmartScore >= 0 && data.buySmartScore <= 100))
+        && (!('sourceUrl' in data) || (data.sourceUrl is string && data.sourceUrl.size() <= 512))
+        && (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 512))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidPriceAlert(data) {
+      return data.keys().hasAll(['userId', 'productId', 'productTitle', 'currentPrice', 'targetPrice', 'currency', 'channel', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'productId', 'productTitle', 'currentPrice', 'targetPrice', 'currency', 'channel', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && isValidId(data.productId)
+        && data.productTitle is string && data.productTitle.size() >= 1 && data.productTitle.size() <= 240
+        && data.currentPrice is number && data.currentPrice >= 0
+        && data.targetPrice is number && data.targetPrice > 0
+        && data.currency is string && data.currency.size() >= 1 && data.currency.size() <= 8
+        && data.channel in ['in_app', 'email']
+        && data.status in ['active', 'triggered', 'paused']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidComparison(data) {
+      return data.keys().hasAll(['userId', 'title', 'productIds', 'isPublic', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'title', 'productIds', 'priorities', 'isPublic', 'createdAt'])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 180
+        && data.productIds is list && data.productIds.size() >= 1 && data.productIds.size() <= 6
+        && data.productIds[0] is string && data.productIds[0].size() <= 128
+        && (!('priorities' in data) || data.priorities is map)
+        && data.isPublic is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidShoppingList(data) {
+      return data.keys().hasAll(['userId', 'title', 'budget', 'currency', 'items', 'totalEstimatedCost', 'isPublic', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'title', 'budget', 'currency', 'items', 'totalEstimatedCost', 'isPublic', 'createdAt', 'updatedAt'])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 180
+        && data.budget is number && data.budget >= 0
+        && data.currency is string && data.currency.size() >= 1 && data.currency.size() <= 8
+        && data.items is list && data.items.size() <= 25
+        && data.totalEstimatedCost is number && data.totalEstimatedCost >= 0
+        && data.isPublic is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSearchHistory(data) {
+      return data.keys().hasAll(['userId', 'query', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'query', 'category', 'budget', 'currency', 'resultCount', 'createdAt'])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && data.query is string && data.query.size() >= 1 && data.query.size() <= 400
+        && (!('category' in data) || (data.category is string && data.category.size() <= 80))
+        && (!('budget' in data) || (data.budget is number && data.budget >= 0))
+        && (!('currency' in data) || (data.currency is string && data.currency.size() <= 8))
+        && (!('resultCount' in data) || (data.resultCount is number && data.resultCount >= 0))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidConversation(data) {
+      return data.keys().hasAll(['userId', 'title', 'messages', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'title', 'messages', 'createdAt', 'updatedAt'])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 180
+        && data.messages is list && data.messages.size() <= 50
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll(['userId', 'title', 'body', 'read', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'title', 'body', 'read', 'createdAt'])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 160
+        && data.body is string && data.body.size() >= 1 && data.body.size() <= 500
+        && data.read is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidProductReport(data) {
+      return data.keys().hasAll(['userId', 'productId', 'issueType', 'details', 'status', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'productId', 'issueType', 'details', 'status', 'createdAt'])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && isValidId(data.productId)
+        && data.issueType in ['wrong_price', 'wrong_spec', 'broken_link', 'safety_concern', 'other']
+        && data.details is string && data.details.size() >= 5 && data.details.size() <= 1000
+        && data.status in ['open', 'reviewed', 'resolved']
+        && data.createdAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow create: if isValidId(userId) && isVerified() && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) && isVerified() && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoUrl', 'updatedAt']);
+      allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
+
+      match /private/{docId} {
+        allow get, list: if isValidId(userId) && (isOwner(userId) || isAdmin());
+        allow create: if isValidId(userId) && isValidId(docId) && isVerified() && isOwner(userId)
+          && isValidUserPrivate(incoming())
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(docId) && isVerified() && isOwner(userId)
+          && isValidUserPrivate(incoming())
+          && incoming().userId == existing().userId
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'preferredCurrency', 'preferredLanguage', 'country', 'defaultBudget', 'priorityWeights', 'updatedAt']);
+        allow delete: if isValidId(userId) && isValidId(docId) && (isOwner(userId) || isAdmin());
+      }
+    }
+
+    match /saved_products/{docId} {
+      allow get: if isValidId(docId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isValidId(docId) && isVerified()
+        && isValidSavedProduct(incoming())
+        && incoming().createdAt == request.time;
+      allow delete: if isValidId(docId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    match /price_alerts/{docId} {
+      allow get: if isValidId(docId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isValidId(docId) && isVerified()
+        && isValidPriceAlert(incoming())
+        && incoming().status == 'active'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(docId) && isVerified()
+        && isValidPriceAlert(incoming())
+        && (existing().userId == request.auth.uid || isAdmin())
+        && incoming().userId == existing().userId
+        && incoming().productId == existing().productId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (isAdmin() || (
+          existing().status != 'triggered'
+          && incoming().diff(existing()).affectedKeys().hasOnly(['targetPrice', 'channel', 'status', 'updatedAt'])
+        ));
+      allow delete: if isValidId(docId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    match /comparisons/{docId} {
+      allow get: if isValidId(docId) && (existing().isPublic == true || (isSignedIn() && (existing().userId == request.auth.uid || isAdmin())));
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isValidId(docId) && isVerified()
+        && isValidComparison(incoming())
+        && incoming().createdAt == request.time;
+      allow delete: if isValidId(docId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    match /shopping_lists/{docId} {
+      allow get: if isValidId(docId) && (existing().isPublic == true || (isSignedIn() && (existing().userId == request.auth.uid || isAdmin())));
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isValidId(docId) && isVerified()
+        && isValidShoppingList(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(docId) && isVerified()
+        && isValidShoppingList(incoming())
+        && (existing().userId == request.auth.uid || isAdmin())
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'budget', 'items', 'totalEstimatedCost', 'isPublic', 'updatedAt']);
+      allow delete: if isValidId(docId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    match /search_history/{docId} {
+      allow get: if isValidId(docId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isValidId(docId) && isVerified()
+        && isValidSearchHistory(incoming())
+        && incoming().createdAt == request.time;
+      allow delete: if isValidId(docId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    match /conversations/{docId} {
+      allow get: if isValidId(docId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isValidId(docId) && isVerified()
+        && isValidConversation(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(docId) && isVerified()
+        && isValidConversation(incoming())
+        && existing().userId == request.auth.uid
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'messages', 'updatedAt']);
+      allow delete: if isValidId(docId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    match /notifications/{docId} {
+      allow get: if isValidId(docId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isValidId(docId) && isVerified()
+        && isValidNotification(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(docId) && isVerified()
+        && isValidNotification(incoming())
+        && existing().userId == request.auth.uid
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow delete: if isValidId(docId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    match /product_reports/{docId} {
+      allow get: if isValidId(docId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isValidId(docId) && isVerified()
+        && isValidProductReport(incoming())
+        && incoming().status == 'open'
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(docId) && isAdmin()
+        && isValidProductReport(incoming())
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+      allow delete: if isValidId(docId) && isAdmin();
+    }
+
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && isAdmin();
+      allow read, write: if false;
+    }
+
+    match /test/connection {
+      allow get: if isSignedIn();
+    }
+  }
+}
